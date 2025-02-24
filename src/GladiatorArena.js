@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import './GladiatorArena.css';
-import arenaImage from './assets/arena-pixel.png';
 
 function GladiatorArena({ provider, arenaContract, gonadContract }) {
   const [gladiator, setGladiator] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [taunt, setTaunt] = useState('');
   const [opponents, setOpponents] = useState([]);
   const [battleLog, setBattleLog] = useState([]);
@@ -25,10 +25,24 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
   });
   const [memeWall, setMemeWall] = useState([]);
   const [newMeme, setNewMeme] = useState('');
+  const [presaleAmount, setPresaleAmount] = useState(1);
+  const [presaleInfo, setPresaleInfo] = useState({
+    totalSold: 0,
+    price: 0,
+    maxPerUser: 0
+  });
+  const [limits, setLimits] = useState({
+    allowance: 0,
+    balance: 0,
+    fightCost: 0,
+    trainingCost: 0
+  });
 
   useEffect(() => {
     loadGladiator();
     loadGonadStats();
+    loadPresaleInfo();
+    loadLimits();
     listenToEvents();
   }, []);
 
@@ -102,6 +116,36 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
         catchPhrase: stats.catchPhrase,
         isRugPullVictim: stats.rugPullVictim,
         memeScore: stats.memeScore.toNumber()
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function loadPresaleInfo() {
+    try {
+      const totalSold = await gonadContract.totalPresaleSold();
+      const price = await gonadContract.PRESALE_PRICE();
+      const maxPerUser = await gonadContract.MAX_PRESALE_PER_USER();
+      
+      setPresaleInfo({
+        totalSold: ethers.utils.formatEther(totalSold),
+        price: ethers.utils.formatEther(price),
+        maxPerUser: ethers.utils.formatEther(maxPerUser)
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function loadLimits() {
+    try {
+      const userLimits = await arenaContract.checkUserLimits(provider.getSigner().getAddress());
+      setLimits({
+        allowance: ethers.utils.formatEther(userLimits.allowance),
+        balance: ethers.utils.formatEther(userLimits.balance),
+        fightCost: ethers.utils.formatEther(userLimits.fightCost),
+        trainingCost: ethers.utils.formatEther(userLimits.trainingCost)
       });
     } catch (err) {
       console.error(err);
@@ -196,6 +240,49 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     }
   }
 
+  async function buyPresale() {
+    try {
+      setLoading(true);
+      const tx = await gonadContract.buyPresale({ 
+        value: ethers.utils.parseEther(presaleAmount.toString()) 
+      });
+      await tx.wait();
+      await loadPresaleInfo();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function claimAirdrop() {
+    try {
+      setLoading(true);
+      const tx = await gonadContract.claimAirdrop();
+      await tx.wait();
+      await loadGladiator();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleMaxApprove() {
+    try {
+      setLoading(true);
+      setError('');
+      const tx = await arenaContract.maxApprove();
+      await tx.wait();
+      setSuccess('Max approve successful! You can now use the arena freely.');
+      await loadLimits();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // Rakipleri yükle
   async function loadOpponents() {
     // Bu kısmı kontrata ekleyip implement edeceğiz
@@ -245,6 +332,42 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
 
   return (
     <div className="arena">
+      {/* Allowance Warning */}
+      {limits.allowance < limits.fightCost && (
+        <div className="warning-card">
+          <h3>⚠️ Allowance Required</h3>
+          <p>Arena needs your approval to use GONAD tokens.</p>
+          <button onClick={handleMaxApprove} disabled={loading}>
+            {loading ? 'Approving...' : 'Approve Arena (Max)'}
+          </button>
+        </div>
+      )}
+
+      {/* Balance Info */}
+      <div className="balance-card">
+        <h3>💰 Your GONAD</h3>
+        <p>Balance: {limits.balance} GONAD</p>
+        <p>Allowance: {limits.allowance} GONAD</p>
+        <p>Fight Cost: {limits.fightCost} GONAD</p>
+        <p>Training Cost: {limits.trainingCost} GONAD</p>
+      </div>
+
+      {/* Success Message */}
+      {success && (
+        <div className="success-message">
+          {success}
+          <button onClick={() => setSuccess('')}>✕</button>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="error-message">
+          {error}
+          <button onClick={() => setError('')}>✕</button>
+        </div>
+      )}
+
       <div className="gladiator-card">
         <h2>{gladiator.name}</h2>
         <div className="stats">
@@ -353,7 +476,37 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
         ))}
       </div>
 
-      {error && <div className="error">{error}</div>}
+      {/* Presale Card */}
+      <div className="presale-card">
+        <h3>🚀 GONAD Presale</h3>
+        <div className="stats">
+          <p>Price: 1 TMON = 1000 GONAD</p>
+          <p>Total Sold: {presaleInfo.totalSold} / 20.826M GONAD</p>
+          <p>Max Per User: {presaleInfo.maxPerUser} GONAD</p>
+        </div>
+        <div className="buy-form">
+          <input
+            type="number"
+            min="1"
+            max="1000"
+            value={presaleAmount}
+            onChange={(e) => setPresaleAmount(e.target.value)}
+            placeholder="TMON Amount"
+          />
+          <button onClick={buyPresale} disabled={loading}>
+            Buy GONAD 🚀
+          </button>
+        </div>
+      </div>
+
+      {/* Airdrop Card */}
+      <div className="airdrop-card">
+        <h3>🎁 Free GONAD</h3>
+        <p>Claim 10 GONAD tokens to start your journey!</p>
+        <button onClick={claimAirdrop} disabled={loading}>
+          Claim Airdrop 🎁
+        </button>
+      </div>
     </div>
   );
 }

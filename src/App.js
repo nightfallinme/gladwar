@@ -2,16 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import GladiatorArena from './GladiatorArena';
 import arenaABI from './abis/GladiatorArena.json';
-import dominusABI from './abis/Dominus.json';
+import gonadABI from './abis/Gonad.json';
 
 const ARENA_ADDRESS = process.env.REACT_APP_ARENA_ADDRESS;
-const DOMINUS_ADDRESS = "YOUR_DOMINUS_CONTRACT_ADDRESS";
 const GONAD_ADDRESS = process.env.REACT_APP_GONAD_ADDRESS;
 
 function App() {
   const [provider, setProvider] = useState(null);
   const [arenaContract, setArenaContract] = useState(null);
-  const [dominusContract, setDominusContract] = useState(null);
+  const [gonadContract, setGonadContract] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -26,11 +25,11 @@ function App() {
         const signer = provider.getSigner();
 
         const arena = new ethers.Contract(ARENA_ADDRESS, arenaABI, signer);
-        const dominus = new ethers.Contract(DOMINUS_ADDRESS, dominusABI, signer);
+        const gonad = new ethers.Contract(GONAD_ADDRESS, gonadABI, signer);
 
         setProvider(provider);
         setArenaContract(arena);
-        setDominusContract(dominus);
+        setGonadContract(gonad);
       } else {
         setError('Please install MetaMask!');
       }
@@ -44,7 +43,7 @@ function App() {
     return <div className="error">{error}</div>;
   }
 
-  if (!provider || !arenaContract || !dominusContract) {
+  if (!provider || !arenaContract || !gonadContract) {
     return <div>Loading...</div>;
   }
 
@@ -52,7 +51,7 @@ function App() {
     <GladiatorArena 
       provider={provider}
       arenaContract={arenaContract}
-      dominusContract={dominusContract}
+      gonadContract={gonadContract}
     />
   );
 }

@@ -1,13 +1,7 @@
 {
   "abi": [
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_token",
-          "type": "address"
-        }
-      ],
+      "inputs": [],
       "stateMutability": "nonpayable",
       "type": "constructor"
     },
@@ -17,23 +11,17 @@
         {
           "indexed": true,
           "internalType": "address",
-          "name": "owner",
+          "name": "flexer",
           "type": "address"
         },
         {
           "indexed": false,
           "internalType": "string",
-          "name": "name",
-          "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "battleCry",
+          "name": "reason",
           "type": "string"
         }
       ],
-      "name": "GladiatorCreated",
+      "name": "FlexFailed",
       "type": "event"
     }
   ]

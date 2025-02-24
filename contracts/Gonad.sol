@@ -3,30 +3,86 @@ pragma solidity =0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Gonad is ERC20, Ownable {
-    // Komik Sabitler
-    uint256 public constant TOTAL_SUPPLY = 69_420_000 * 10**18; // 69.42M GONAD
+    // Token Ekonomisi
+    uint256 public constant TOTAL_SUPPLY = 69_420_000 * 10**18;  // 69.42M GONAD
+    uint256 public constant ARENA_ALLOCATION = 34_710_000 * 10**18;  // %50 Arena için
+    uint256 public constant PRESALE_ALLOCATION = 20_826_000 * 10**18;  // %30 Presale
+    uint256 public constant AIRDROP_ALLOCATION = 6_942_000 * 10**18;  // %10 Airdrop
+
+    // Kullanıcı limitleri
     uint256 public constant DAILY_FLEX_LIMIT = 42;
-    string public constant MOTTO = "Get GONAD or Get Rekt!";
-    
-    // Komik State Variables
+    uint256 public constant PRESALE_PRICE = 1 * 10**18;  // 1 MON
+    uint256 public constant GONAD_PER_MON = 1000;  // 1 MON = 1000 GONAD
+    uint256 public constant MAX_PRESALE_PER_USER = 1000 * 10**18;  // Kişi başı max 1000 GONAD
+    uint256 public constant AIRDROP_AMOUNT = 10 * 10**18;  // 10 GONAD airdrop
+
+    // Events
+    event Presale(address indexed buyer, uint256 amount);
+    event Airdrop(address indexed claimer);
+    event FlexFailed(address indexed flexer, string reason);
+    event MemePosted(address indexed poster, string message);
+    event GigaChad(address indexed chad, uint256 flexPower);
+    event Rugpull(address indexed victim, string lastWords);
+
+    // State variables
     mapping(address => uint256) public flexCount;
     mapping(address => uint256) public lastFlexTime;
     mapping(address => string) public catchPhrases;
     mapping(address => bool) public hasBeenRugged;
     mapping(address => uint256) public memeCount;
+    mapping(address => bool) public hasClaimedAirdrop;
     
-    // Komik Events
-    event FlexFailed(address indexed flexer, string reason);
-    event MemePosted(address indexed poster, string message);
-    event GigaChad(address indexed chad, uint256 flexPower);
-    event Rugpull(address indexed victim, string lastWords);
-    
+    uint256 public totalPresaleSold;
+    uint256 public totalAirdropClaimed;
+    address public arenaAddress;
+
     constructor() ERC20("GONAD", "GONAD") {
         _mint(msg.sender, TOTAL_SUPPLY);
         catchPhrases[msg.sender] = "I created GONAD, bow before me!";
-        emit GigaChad(msg.sender, 9001); // It's over 9000!
+        emit GigaChad(msg.sender, 9001);
+    }
+
+    function initializeArena(address _arena) external onlyOwner {
+        require(arenaAddress == address(0), "Arena already set");
+        arenaAddress = _arena;
+        
+        // Arena'ya supply'ın %50'sini gönder
+        _transfer(msg.sender, arenaAddress, ARENA_ALLOCATION);
+    }
+
+    // Native TMON ile presale
+    function buyPresale() external payable {
+        require(msg.value >= PRESALE_PRICE, "Min 1 MON");
+        uint256 gonadAmount = msg.value * GONAD_PER_MON; // MON ve GONAD aynı decimals (18)
+        require(gonadAmount <= MAX_PRESALE_PER_USER, "Max 1000 GONAD per user");
+        require(totalPresaleSold + gonadAmount <= PRESALE_ALLOCATION, "Presale cap reached");
+        
+        totalPresaleSold += gonadAmount;
+        _transfer(owner(), msg.sender, gonadAmount);
+        emit Presale(msg.sender, gonadAmount);
+    }
+
+    function claimAirdrop() external {
+        if (hasClaimedAirdrop[msg.sender]) revert("Already claimed");
+        if (totalAirdropClaimed + AIRDROP_AMOUNT > AIRDROP_ALLOCATION) revert("Airdrop finished");
+        
+        hasClaimedAirdrop[msg.sender] = true;
+        totalAirdropClaimed += AIRDROP_AMOUNT;
+        _transfer(owner(), msg.sender, AIRDROP_AMOUNT);
+        emit Airdrop(msg.sender);
+    }
+
+    // Owner TMON'ları çekebilir
+    function withdrawTMON() external onlyOwner {
+        (bool success, ) = payable(owner()).call{value: address(this).balance}("");
+        require(success, "Transfer failed");
+    }
+    
+    function sendToArena(address arena, uint256 amount) external onlyOwner {
+        _transfer(owner(), arena, amount);
     }
     
     // Temel Token Fonksiyonlarını Override Et
@@ -42,11 +98,11 @@ contract Gonad is ERC20, Ownable {
     
     // Eğlenceli Fonksiyonlar
     function flexOnThem() external {
-        require(block.timestamp >= lastFlexTime[msg.sender] + 1 hours, "Bro chill with the flexing");
-        require(flexCount[msg.sender] < DAILY_FLEX_LIMIT, "You flexed too much today");
+        if (block.timestamp < lastFlexTime[msg.sender] + 1 hours) revert("Bro chill with the flexing");
+        if (flexCount[msg.sender] >= DAILY_FLEX_LIMIT) revert("You flexed too much today");
         
         uint256 balance = balanceOf(msg.sender);
-        require(balance > 0, "No GONAD to flex with");
+        if (balance == 0) revert("No GONAD to flex with");
         
         // Random flex power
         uint256 flexPower = uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender))) % balance;
@@ -104,4 +160,8 @@ contract Gonad is ERC20, Ownable {
     function theSecretOfGONAD() external pure returns (string memory) {
         return "The real GONAD was the friends we made along the way";
     }
+
+    // Fallback ve receive fonksiyonları
+    receive() external payable {}
+    fallback() external payable {}
 } 

@@ -34,12 +34,12 @@ module.exports = {
     monadTestnet: {
       url: "https://testnet-rpc.monad.xyz",
       chainId: 10143,
-      accounts: [process.env.PRIVATE_KEY],
+      accounts: [process.env.PRIVATE_KEY]
     }
   },
   etherscan: {
     apiKey: {
-      monadTestnet: "monad" // Explorer API key gerekiyorsa buraya ekleyin
+      monadTestnet: "monad"
     },
     customChains: [
       {
