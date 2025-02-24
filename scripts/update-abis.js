@@ -21,15 +21,12 @@ CONTRACTS.forEach(contract => {
 
   const artifact = require(artifactPath);
   
-  // Sadece ABI ve bytecode'u kaydet
-  const minifiedArtifact = {
-    abi: artifact.abi,
-    bytecode: artifact.bytecode
-  };
-
+  // Sadece ABI'yi kaydet
   fs.writeFileSync(
     abiPath,
-    JSON.stringify(minifiedArtifact, null, 2)
+    JSON.stringify({
+      abi: artifact.abi
+    }, null, 2)
   );
 
   console.log(`Updated ABI for ${contract}`);

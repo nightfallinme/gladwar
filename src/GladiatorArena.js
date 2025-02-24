@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import './GladiatorArena.css';
 
@@ -38,16 +38,8 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     trainingCost: 0
   });
 
-  useEffect(() => {
-    loadGladiator();
-    loadGonadStats();
-    loadPresaleInfo();
-    loadLimits();
-    listenToEvents();
-  }, []);
-
-  // Event dinleyicileri
-  function listenToEvents() {
+  // Önce fonksiyonları tanımlayalım
+  const listenToEvents = useCallback(() => {
     arenaContract.on("Fight", (challenger, opponent, winner, epicMoment) => {
       setBattleLog(prev => [`🗡️ ${epicMoment}`, ...prev.slice(0, 4)]);
     });
@@ -75,9 +67,9 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     gonadContract.on("Rugpull", (victim, lastWords) => {
       setBattleLog(prev => [`😱 RUG PULL: ${lastWords}`, ...prev.slice(0, 4)]);
     });
-  }
+  }, [arenaContract, setBattleLog]);
 
-  async function loadGladiator() {
+  const loadGladiator = useCallback(async () => {
     try {
       const signer = provider.getSigner();
       const address = await signer.getAddress();
@@ -102,9 +94,9 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     } catch (err) {
       console.error(err);
     }
-  }
+  }, [arenaContract, provider]);
 
-  async function loadGonadStats() {
+  const loadGonadStats = useCallback(async () => {
     try {
       const signer = provider.getSigner();
       const address = await signer.getAddress();
@@ -120,9 +112,9 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     } catch (err) {
       console.error(err);
     }
-  }
+  }, [gonadContract, provider]);
 
-  async function loadPresaleInfo() {
+  const loadPresaleInfo = useCallback(async () => {
     try {
       const totalSold = await gonadContract.totalPresaleSold();
       const price = await gonadContract.PRESALE_PRICE();
@@ -136,11 +128,12 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     } catch (err) {
       console.error(err);
     }
-  }
+  }, [gonadContract]);
 
-  async function loadLimits() {
+  const loadLimits = useCallback(async () => {
     try {
-      const userLimits = await arenaContract.checkUserLimits(provider.getSigner().getAddress());
+      const signer = provider.getSigner();
+      const userLimits = await arenaContract.checkUserLimits(await signer.getAddress());
       setLimits({
         allowance: ethers.utils.formatEther(userLimits.allowance),
         balance: ethers.utils.formatEther(userLimits.balance),
@@ -150,7 +143,19 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     } catch (err) {
       console.error(err);
     }
-  }
+  }, [arenaContract, gonadContract, provider]);
+
+  // Sonra useEffect
+  useEffect(() => {
+    const init = async () => {
+      await loadGladiator();
+      await loadGonadStats();
+      await loadPresaleInfo();
+      await loadLimits();
+      listenToEvents();
+    };
+    init();
+  }, [loadGladiator, loadGonadStats, loadPresaleInfo, loadLimits, listenToEvents]);
 
   async function createGladiator() {
     try {
@@ -281,13 +286,6 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     } finally {
       setLoading(false);
     }
-  }
-
-  // Rakipleri yükle
-  async function loadOpponents() {
-    // Bu kısmı kontrata ekleyip implement edeceğiz
-    const opponentList = await arenaContract.getActiveGladiators();
-    setOpponents(opponentList);
   }
 
   if (!gladiator && !showCreateForm) {
