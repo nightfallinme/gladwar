@@ -38,4 +38,40 @@
 
 .loading-container p {
   color: #aaa;
+}
+
+.wallet-connector {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  background: rgba(0,0,0,0.8);
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 2px solid #ffd700;
+}
+
+.wallet-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wallet-connector button {
+  background: #ffd700;
+  color: #000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.wallet-connector button:hover {
+  background: #ffed4a;
+}
+
+.wallet-connector span {
+  color: #fff;
+  font-family: monospace;
 } 

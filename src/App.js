@@ -4,6 +4,7 @@ import { Web3Provider } from '@ethersproject/providers';
 import { InjectedConnector } from '@web3-react/injected-connector';
 import './App.css';
 import GladiatorArena from './GladiatorArena';
+import WalletConnector from './components/WalletConnector';
 
 // Monad Testnet için connector
 export const injected = new InjectedConnector({
@@ -20,6 +21,7 @@ function App() {
   return (
     <Web3ReactProvider getLibrary={getLibrary}>
       <div className="App">
+        <WalletConnector />
         <GladiatorArena />
       </div>
     </Web3ReactProvider>

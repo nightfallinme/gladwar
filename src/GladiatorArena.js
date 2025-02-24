@@ -3,14 +3,12 @@ import { ethers } from 'ethers';
 import { useWeb3React } from '@web3-react/core';
 import './GladiatorArena.css';
 import { injected } from './App';
-import { useAccount, useConnect, useContractRead, useContractWrite, useNetwork, useSwitchNetwork } from 'wagmi';
 
 function GladiatorArena() {
   const { account, library, activate, active } = useWeb3React();
-  const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
-  const { chain } = useNetwork();
-  const { switchNetwork } = useSwitchNetwork();
+
+  const [arenaContract, setArenaContract] = useState(null);
+  const [gonadContract, setGonadContract] = useState(null);
 
   const [gladiator, setGladiator] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -47,21 +45,28 @@ function GladiatorArena() {
     trainingCost: 0
   });
 
-  // Kontrat okuma örneği
-  const { data: gladiatorData } = useContractRead({
-    address: process.env.REACT_APP_ARENA_ADDRESS,
-    abi: arenaAbi,
-    functionName: 'getGladiatorBasicStats',
-    args: [address],
-    enabled: isConnected,
-  });
+  // Kontratları oluştur
+  useEffect(() => {
+    if (library && active) {
+      const signer = library.getSigner();
+      const arenaAbi = require('./abis/GladiatorArena.json').abi;
+      const gonadAbi = require('./abis/Gonad.json').abi;
 
-  // Kontrat yazma örneği
-  const { write: createGladiator } = useContractWrite({
-    address: process.env.REACT_APP_ARENA_ADDRESS,
-    abi: arenaAbi,
-    functionName: 'createGladiator',
-  });
+      const arena = new ethers.Contract(
+        process.env.REACT_APP_ARENA_ADDRESS,
+        arenaAbi,
+        signer
+      );
+      setArenaContract(arena);
+
+      const gonad = new ethers.Contract(
+        process.env.REACT_APP_GONAD_ADDRESS,
+        gonadAbi,
+        signer
+      );
+      setGonadContract(gonad);
+    }
+  }, [library, active]);
 
   // Önce fonksiyonları tanımlayalım
   const listenToEvents = useCallback(() => {
