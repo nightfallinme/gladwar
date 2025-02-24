@@ -48,23 +48,34 @@ function GladiatorArena() {
   // Kontratları oluştur
   useEffect(() => {
     if (library && active) {
-      const signer = library.getSigner();
-      const arenaAbi = require('./abis/GladiatorArena.json').abi;
-      const gonadAbi = require('./abis/Gonad.json').abi;
+      try {
+        console.log("Creating contracts...");
+        const signer = library.getSigner();
+        const arenaAbi = require('./abis/GladiatorArena.json').abi;
+        const gonadAbi = require('./abis/Gonad.json').abi;
 
-      const arena = new ethers.Contract(
-        process.env.REACT_APP_ARENA_ADDRESS,
-        arenaAbi,
-        signer
-      );
-      setArenaContract(arena);
+        console.log("Arena Address:", process.env.REACT_APP_ARENA_ADDRESS);
+        console.log("GONAD Address:", process.env.REACT_APP_GONAD_ADDRESS);
 
-      const gonad = new ethers.Contract(
-        process.env.REACT_APP_GONAD_ADDRESS,
-        gonadAbi,
-        signer
-      );
-      setGonadContract(gonad);
+        const arena = new ethers.Contract(
+          process.env.REACT_APP_ARENA_ADDRESS,
+          arenaAbi,
+          signer
+        );
+        setArenaContract(arena);
+
+        const gonad = new ethers.Contract(
+          process.env.REACT_APP_GONAD_ADDRESS,
+          gonadAbi,
+          signer
+        );
+        setGonadContract(gonad);
+
+        console.log("Contracts created successfully!");
+      } catch (err) {
+        console.error("Error creating contracts:", err);
+        setError(err.message);
+      }
     }
   }, [library, active]);
 
