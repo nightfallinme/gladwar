@@ -4,8 +4,9 @@ import GladiatorArena from './GladiatorArena';
 import arenaABI from './abis/GladiatorArena.json';
 import dominusABI from './abis/Dominus.json';
 
-const ARENA_ADDRESS = "YOUR_ARENA_CONTRACT_ADDRESS";
+const ARENA_ADDRESS = process.env.REACT_APP_ARENA_ADDRESS;
 const DOMINUS_ADDRESS = "YOUR_DOMINUS_CONTRACT_ADDRESS";
+const GONAD_ADDRESS = process.env.REACT_APP_GONAD_ADDRESS;
 
 function App() {
   const [provider, setProvider] = useState(null);
