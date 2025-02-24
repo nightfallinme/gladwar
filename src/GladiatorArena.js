@@ -1,8 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
+import { useWeb3React } from '@web3-react/core';
 import './GladiatorArena.css';
+import { injected } from './App';
+import { useAccount, useConnect, useContractRead, useContractWrite, useNetwork, useSwitchNetwork } from 'wagmi';
 
-function GladiatorArena({ provider, arenaContract, gonadContract }) {
+function GladiatorArena() {
+  const { account, library, activate, active } = useWeb3React();
+  const { address, isConnected } = useAccount();
+  const { connect } = useConnect();
+  const { chain } = useNetwork();
+  const { switchNetwork } = useSwitchNetwork();
+
   const [gladiator, setGladiator] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,6 +47,22 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     trainingCost: 0
   });
 
+  // Kontrat okuma örneği
+  const { data: gladiatorData } = useContractRead({
+    address: process.env.REACT_APP_ARENA_ADDRESS,
+    abi: arenaAbi,
+    functionName: 'getGladiatorBasicStats',
+    args: [address],
+    enabled: isConnected,
+  });
+
+  // Kontrat yazma örneği
+  const { write: createGladiator } = useContractWrite({
+    address: process.env.REACT_APP_ARENA_ADDRESS,
+    abi: arenaAbi,
+    functionName: 'createGladiator',
+  });
+
   // Önce fonksiyonları tanımlayalım
   const listenToEvents = useCallback(() => {
     arenaContract.on("Fight", (challenger, opponent, winner, epicMoment) => {
@@ -71,7 +96,7 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
 
   const loadGladiator = useCallback(async () => {
     try {
-      const signer = provider.getSigner();
+      const signer = library.getSigner();
       const address = await signer.getAddress();
       
       const basicStats = await arenaContract.getGladiatorBasicStats(address);
@@ -94,11 +119,11 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     } catch (err) {
       console.error(err);
     }
-  }, [arenaContract, provider]);
+  }, [library, arenaContract]);
 
   const loadGonadStats = useCallback(async () => {
     try {
-      const signer = provider.getSigner();
+      const signer = library.getSigner();
       const address = await signer.getAddress();
       const stats = await gonadContract.getFlexStatus(address);
       
@@ -112,7 +137,7 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     } catch (err) {
       console.error(err);
     }
-  }, [gonadContract, provider]);
+  }, [library, gonadContract]);
 
   const loadPresaleInfo = useCallback(async () => {
     try {
@@ -132,7 +157,7 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
 
   const loadLimits = useCallback(async () => {
     try {
-      const signer = provider.getSigner();
+      const signer = library.getSigner();
       const userLimits = await arenaContract.checkUserLimits(await signer.getAddress());
       setLimits({
         allowance: ethers.utils.formatEther(userLimits.allowance),
@@ -143,7 +168,7 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     } catch (err) {
       console.error(err);
     }
-  }, [arenaContract, gonadContract, provider]);
+  }, [library, arenaContract, gonadContract]);
 
   // Sonra useEffect
   useEffect(() => {
@@ -156,6 +181,15 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     };
     init();
   }, [loadGladiator, loadGonadStats, loadPresaleInfo, loadLimits, listenToEvents]);
+
+  // Connect wallet fonksiyonu
+  const connectWallet = useCallback(async () => {
+    try {
+      await activate(injected);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [activate]);
 
   async function createGladiator() {
     try {
@@ -286,6 +320,17 @@ function GladiatorArena({ provider, arenaContract, gonadContract }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Eğer cüzdan bağlı değilse
+  if (!active) {
+    return (
+      <div className="loading-container">
+        <h1>Welcome to GONAD Arena</h1>
+        <p>Please connect your wallet to continue</p>
+        <button onClick={connectWallet}>Connect Wallet</button>
+      </div>
+    );
   }
 
   if (!gladiator && !showCreateForm) {
