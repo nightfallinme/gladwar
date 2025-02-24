@@ -5,7 +5,7 @@ import './GladiatorArena.css';
 import { injected } from './App';
 
 function GladiatorArena() {
-  const { account, library, activate, active } = useWeb3React();
+  const { library, activate, active } = useWeb3React();
 
   const [arenaContract, setArenaContract] = useState(null);
   const [gonadContract, setGonadContract] = useState(null);
@@ -15,7 +15,7 @@ function GladiatorArena() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [taunt, setTaunt] = useState('');
-  const [opponents, setOpponents] = useState([]);
+  const [opponents] = useState([]);
   const [battleLog, setBattleLog] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newGladiator, setNewGladiator] = useState({
@@ -81,6 +81,8 @@ function GladiatorArena() {
 
   // Önce fonksiyonları tanımlayalım
   const listenToEvents = useCallback(() => {
+    if (!arenaContract || !gonadContract) return;
+
     arenaContract.on("Fight", (challenger, opponent, winner, epicMoment) => {
       setBattleLog(prev => [`🗡️ ${epicMoment}`, ...prev.slice(0, 4)]);
     });
@@ -108,7 +110,7 @@ function GladiatorArena() {
     gonadContract.on("Rugpull", (victim, lastWords) => {
       setBattleLog(prev => [`😱 RUG PULL: ${lastWords}`, ...prev.slice(0, 4)]);
     });
-  }, [arenaContract, setBattleLog]);
+  }, [arenaContract, gonadContract, setBattleLog]);
 
   const loadGladiator = useCallback(async () => {
     try {
@@ -184,7 +186,7 @@ function GladiatorArena() {
     } catch (err) {
       console.error(err);
     }
-  }, [library, arenaContract, gonadContract]);
+  }, [library, arenaContract]);
 
   // Sonra useEffect
   useEffect(() => {

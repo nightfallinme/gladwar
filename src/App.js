@@ -2,10 +2,10 @@ import React from 'react';
 import { Web3ReactProvider } from '@web3-react/core';
 import { Web3Provider } from '@ethersproject/providers';
 import { InjectedConnector } from '@web3-react/injected-connector';
+import { ErrorBoundary } from 'react-error-boundary';
 import './App.css';
 import GladiatorArena from './GladiatorArena';
 import WalletConnector from './components/WalletConnector';
-import { ErrorBoundary } from 'react-error-boundary';
 
 // Monad Testnet için connector
 export const injected = new InjectedConnector({
@@ -21,7 +21,17 @@ function getLibrary(provider) {
 function App() {
   return (
     <Web3ReactProvider getLibrary={getLibrary}>
-      <ErrorBoundary>
+      <ErrorBoundary
+        FallbackComponent={({ error }) => (
+          <div className="error-container">
+            <h1>Something went wrong</h1>
+            <p>{error.message}</p>
+            <button onClick={() => window.location.reload()}>
+              Reload Page
+            </button>
+          </div>
+        )}
+      >
         <div className="App">
           <WalletConnector />
           <GladiatorArena />
@@ -29,31 +39,6 @@ function App() {
       </ErrorBoundary>
     </Web3ReactProvider>
   );
-}
-
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="error-container">
-          <h1>Something went wrong</h1>
-          <p>{this.state.error.message}</p>
-          <button onClick={() => window.location.reload()}>Reload Page</button>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
 }
 
 export default App; 
