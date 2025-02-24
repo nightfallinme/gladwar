@@ -28,7 +28,8 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "CI=false GENERATE_SOURCEMAP=false react-scripts build",
+    "update-abis": "node scripts/update-abis.js",
+    "build": "npm run update-abis && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
